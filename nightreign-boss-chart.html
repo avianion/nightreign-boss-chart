@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nightreign Boss Chart</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070707;
+    --bg-elevated: #0f0f0f;
+    --bg-card: #141414;
+    --bg-input: #1a1a1a;
+    --border: #2a2a2a;
+    --border-focus: #4a3b20;
+    --text-primary: #e8e4dc;
+    --text-secondary: #8a857d;
+    --text-muted: #5a5652;
+    --accent: #c9a84c;
+    --accent-dim: #8a7340;
+    --accent-glow: rgba(201, 168, 76, 0.15);
+    --danger: #c94c4c;
+    --success: #4cc988;
+    --bar-bg: #1e1e1e;
+    --bar-fill: linear-gradient(90deg, #8a7340, #c9a84c);
+    --shadow: 0 4px 24px rgba(0,0,0,0.6);
+    --shadow-glow: 0 0 40px rgba(201, 168, 76, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.8) 0%, transparent 60%);
+    line-height: 1.5;
+  }
+
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+
+  .header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 20px rgba(201,168,76,0.2);
+  }
+
+  .header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    border-color: #333;
+    box-shadow: var(--shadow), var(--shadow-glow);
+  }
+
+  .card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+  }
+
+  /* Form Grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 1.8rem; }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  select {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a857d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 44px;
+  }
+
+  select:hover {
+    border-color: #3a3a3a;
+  }
+
+  select:focus {
+    border-color: var(--accent-dim);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  select option {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    padding: 10px;
+  }
+
+  /* Depth selector */
+  .depth-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .depth-row select {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .hint {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-style: italic;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  /* Results */
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .results-count {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: var(--accent-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .locked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(76, 201, 136, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(76, 201, 136, 0.2);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .locked-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--success);
+  }
+
+  /* Boss Rows */
+  .boss-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .boss-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+
+  .boss-row:hover {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .boss-row.locked {
+    background: rgba(76, 201, 136, 0.05);
+    border: 1px solid rgba(76, 201, 136, 0.15);
+  }
+
+  .boss-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    color: var(--accent-dim);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .boss-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .boss-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .boss-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .boss-name .everdark {
+    color: var(--danger);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 6px;
+    opacity: 0.9;
+  }
+
+  .boss-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .bar-track {
+    flex: 1.5;
+    height: 8px;
+    background: var(--bar-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--bar-fill);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+
+  .bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));
+    border-radius: 0 4px 4px 0;
+  }
+
+  .boss-pct {
+    width: 60px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-muted);
+  }
+
+  .empty-state svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+
+  .empty-state p {
+    font-size: 0.9rem;
+  }
+
+  /* Footer note */
+  .footer-note {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 32px;
+    line-height: 1.8;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .footer-note a {
+    color: var(--accent-dim);
+    text-decoration: none;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 32px 0;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <h1>Nightreign Boss Chart</h1>
+    <p>Deep of Night — Hidden Nightlord Predictor</p>
+  </header>
+
+  <div class="card">
+    <div class="card-title">Select Your Bosses</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="n1">Night 1 Boss</label>
+        <select id="n1">
+          <option value="">Choose a boss...</option>
+          <option value="battlefield">Battlefield Commander</option>
+          <option value="bbh">Bell Bearing Hunter</option>
+          <option value="centipede">Centipede Demon</option>
+          <option value="demi">Demi-Human Queen &amp; Swordmaster</option>
+          <option value="gaping">Gaping Dragon</option>
+          <option value="grafted">Grafted Monarch</option>
+          <option value="cavalry">Night's Cavalry Duo</option>
+          <option value="revenant">Royal Revenant</option>
+          <option value="smelter">Smelter Demon</option>
+          <option value="freja">The Duke's Dear Freja</option>
+          <option value="tibia">Tibia Mariner</option>
+          <option value="tree">Ulcerated Tree Spirit</option>
+          <option value="gargoyle">Valiant Gargoyle</option>
+          <option value="wormface">Wormface</option>
+          <option value="deathknight">Death Knight</option>
+          <option value="demons">Demon in Pain &amp; Demon from Below</option>
+          <option value="warrior">Divine Beast Warrior &amp; Curseblade</option>
+          <option value="bear">Great Red Bear</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="n2">Night 2 Boss <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <select id="n2">
+          <option value="">Not seen yet...</option>
+          <option value="ancient">Ancient Dragon</option>
+          <option value="crucible">Crucible Knight &amp; Golden Hippopotamus</option>
+          <option value="dancer">Dancer of the Boreal Valley</option>
+          <option value="deathrite">Death Rite Bird</option>
+          <option value="draconic">Draconic Tree Sentinel &amp; Royal Cavalrymen</option>
+          <option value="fallingstar">Full-Grown Fallingstar Beast</option>
+          <option value="fell">Fell Omen</option>
+          <option value="godskin">Godskin Duo</option>
+          <option value="wyrm">Great Wyrm</option>
+          <option value="nameless">Nameless King</option>
+          <option value="nox">Nox Dragonkin Soldier</option>
+          <option value="outland">Outland Commander</option>
+          <option value="treesent">Tree Sentinel &amp; Royal Cavalrymen</option>
+          <option value="artorias">Knight Artorias</option>
+          <option value="lion">Divine Beast Dancing Lion</option>
+          <option value="mohg">Lord of Blood</option>
+          <option value="demonprince">Demon Prince</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Depth Level</div>
+    <div class="depth-row">
+      <select id="depth">
+        <option value="any">Unknown / Any Depth</option>
+        <option value="d1" selected>Depth 1</option>
+        <option value="d2">Depth 2</option>
+        <option value="d3">Depth 3</option>
+        <option value="d4">Depth 4</option>
+        <option value="d5">Depth 5</option>
+      </select>
+    </div>
+    <p class="hint">Select your current DoN depth to weight predictions by real game odds. Pick "Unknown" for an unweighted view.</p>
+  </div>
+
+  <div class="card" id="output">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <p>Select a Night 1 boss to reveal possible Nightlords.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <p class="footer-note">
+    Data sourced from community sheets and datamined odds. DLC bosses require all party members to own The Forsaken Hollows.<br>
+    Heolstor can draw from any boss pool, making him an ever-present wildcard.<br><br>
+    <strong>Disclaimer:</strong> This is a fan-made project and is not affiliated with, endorsed by, or connected to FromSoftware or Bandai Namco. Elden Ring and Nightreign are trademarks of their respective owners.
+  </p>
+</div>
+
+<script>
+const EXPEDITIONS = {
+  gladius:   { name: 'Gladius, Beast of Night', expedition: 'Tricephalos', icon: 'nightreign/icon-gladius.png' },
+  adel:      { name: 'Adel, Baron of Night', expedition: 'Gaping Jaw', icon: 'nightreign/icon-adel.png' },
+  gnoster:   { name: 'Gnoster, Wisdom of Night', expedition: 'Sentient Pest', icon: 'nightreign/icon-gnoster.png' },
+  maris:     { name: 'Maris, Fathom of Night', expedition: 'Augur', icon: 'nightreign/icon-maris.png' },
+  libra:     { name: 'Libra, Creature of Night', expedition: 'Equilibrious Beast', icon: 'nightreign/icon-libra.png' },
+  fulghor:   { name: 'Fulghor, Champion of Nightglow', expedition: 'Darkdrift Knight', icon: 'nightreign/icon-fulghor.png' },
+  caligo:    { name: 'Caligo, Miasma of Night', expedition: 'Fissure in the Fog', icon: 'nightreign/icon-caligo.png' },
+  heolstor:  { name: 'Heolstor, the Nightlord', expedition: 'Night Aspect', icon: 'nightreign/icon-heolstor.png' },
+  dreglord:  { name: 'Traitorous Straghess', expedition: 'Dreglord' },
+  balancers: { name: 'Weapon-Bequeathed Harmonia', expedition: 'Balancers' },
+  es_gladius:{ name: 'Gladius, Beast of Night', expedition: 'Tricephalos', everdark: true, icon: 'nightreign/icon-gladius.png' },
+  es_adel:   { name: 'Adel, Baron of Night', expedition: 'Gaping Jaw', everdark: true, icon: 'nightreign/icon-adel.png' },
+  es_gnoster:{ name: 'Gnoster, Wisdom of Night', expedition: 'Sentient Pest', everdark: true, icon: 'nightreign/icon-gnoster.png' },
+  es_maris:  { name: 'Maris, Fathom of Night', expedition: 'Augur', everdark: true, icon: 'nightreign/icon-maris.png' },
+  es_libra:  { name: 'Libra, Creature of Night', expedition: 'Equilibrious Beast', everdark: true, icon: 'nightreign/icon-libra.png' },
+  es_fulghor:{ name: 'Fulghor, Champion of Nightglow', expedition: 'Darkdrift Knight', everdark: true, icon: 'nightreign/icon-fulghor.png' },
+  es_caligo: { name: 'Caligo, Miasma of Night', expedition: 'Fissure in the Fog', everdark: true, icon: 'nightreign/icon-caligo.png' },
+  es_balancers: { name: 'Weapon-Bequeathed Harmonia', expedition: 'Balancers', everdark: true },
+};
+
+const BASE = {
+  any:  { gladius:1, adel:1, gnoster:1, maris:1, libra:1, fulghor:1, caligo:1, heolstor:1, dreglord:1, balancers:1, es_gladius:1, es_adel:1, es_gnoster:1, es_maris:1, es_libra:1, es_fulghor:1, es_caligo:1, es_balancers:1 },
+  d1:   { gladius:13.89, adel:13.89, gnoster:13.89, maris:6.94, libra:13.89, fulghor:13.89, caligo:13.89, heolstor:9.72, dreglord:13, balancers:19, es_gladius:0, es_adel:0, es_gnoster:0, es_maris:0, es_libra:0, es_fulghor:0, es_caligo:0, es_balancers:0 },
+  d2:   { gladius:11.11, adel:11.11, gnoster:11.11, maris:5.56, libra:11.11, fulghor:11.11, caligo:11.11, heolstor:9.72, dreglord:13, balancers:19, es_gladius:2.78, es_adel:2.78, es_gnoster:2.78, es_maris:1.39, es_libra:2.78, es_fulghor:2.78, es_caligo:2.78, es_balancers:0 },
+  d3:   { gladius:9.03, adel:9.03, gnoster:9.03, maris:4.51, libra:9.03, fulghor:9.03, caligo:9.03, heolstor:9.72, dreglord:13, balancers:19, es_gladius:4.86, es_adel:4.86, es_gnoster:4.86, es_maris:2.43, es_libra:4.86, es_fulghor:4.86, es_caligo:4.86, es_balancers:0 },
+  d4:   { gladius:6.94, adel:6.94, gnoster:6.94, maris:3.47, libra:6.94, fulghor:6.94, caligo:6.94, heolstor:9.72, dreglord:13, balancers:9.5, es_gladius:6.94, es_adel:6.94, es_gnoster:6.94, es_maris:3.47, es_libra:6.94, es_fulghor:6.94, es_caligo:6.94, es_balancers:9.5 },
+  d5:   { gladius:6.94, adel:6.94, gnoster:6.94, maris:3.47, libra:6.94, fulghor:6.94, caligo:6.94, heolstor:9.72, dreglord:13, balancers:9.5, es_gladius:6.94, es_adel:6.94, es_gnoster:6.94, es_maris:3.47, es_libra:6.94, es_fulghor:6.94, es_caligo:6.94, es_balancers:9.5 },
+};
+
+const N1 = {
+  battlefield: { gnoster:1, libra:1, heolstor:1 },
+  bbh:         { gladius:1, caligo:1, heolstor:1 },
+  centipede:   { gnoster:1, libra:1, fulghor:1, heolstor:1 },
+  demi:        { gladius:1, heolstor:1 },
+  gaping:      { adel:1, maris:1, fulghor:1, heolstor:1 },
+  grafted:     { maris:1, caligo:1, heolstor:1 },
+  cavalry:     { adel:1, fulghor:1, heolstor:1 },
+  revenant:    { libra:1, fulghor:1, heolstor:1 },
+  smelter:     { gnoster:1, maris:1, caligo:1, heolstor:1 },
+  freja:       { adel:1, libra:1, caligo:1, heolstor:1 },
+  tibia:       { gnoster:1, libra:1, caligo:1, heolstor:1 },
+  tree:        { gnoster:1, caligo:1, heolstor:1 },
+  gargoyle:    { adel:1, maris:1, fulghor:1, heolstor:1 },
+  wormface:    { adel:1, maris:1, fulghor:1, heolstor:1 },
+  deathknight: { dreglord:1 },
+  demons:      { balancers:1 },
+  warrior:     { balancers:1 },
+  bear:        { dreglord:1 },
+};
+
+const N2 = {
+  ancient:     { adel:1, heolstor:1 },
+  crucible:    { adel:1, libra:1, heolstor:1 },
+  dancer:      { caligo:1, heolstor:1 },
+  deathrite:   { libra:1, heolstor:1 },
+  draconic:    { gnoster:1, caligo:1, heolstor:1 },
+  fallingstar: { maris:1, heolstor:1 },
+  fell:        { gladius:1, fulghor:1, heolstor:1 },
+  godskin:     { maris:1, libra:1, caligo:1, heolstor:1 },
+  wyrm:        { gnoster:1, heolstor:1 },
+  nameless:    { fulghor:1, heolstor:1 },
+  nox:         { gnoster:1, fulghor:1, heolstor:1 },
+  outland:     { adel:1, fulghor:1, heolstor:1 },
+  treesent:    { gladius:1, gnoster:1, maris:1, heolstor:1 },
+  artorias:    { dreglord:1 },
+  lion:        { dreglord:1 },
+  mohg:        { balancers:1 },
+  demonprince: { balancers:1 },
+};
+
+const INITIALS = {
+  gladius: 'G', adel: 'A', gnoster: 'Gn', maris: 'M', libra: 'L',
+  fulghor: 'F', caligo: 'C', heolstor: 'H', dreglord: 'D', balancers: 'B',
+  es_balancers: 'B'
+};
+
+function getWeight(map, expeditionKey) {
+  if (!map) return 1;
+  return map[expeditionKey] ?? 0;
+}
+
+function calc() {
+  const n1 = document.getElementById('n1').value;
+  const n2 = document.getElementById('n2').value;
+  const depth = document.getElementById('depth').value;
+  const out = document.getElementById('output');
+
+  if (!n1) {
+    out.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <p>Select a Night 1 boss to reveal possible Nightlords.</p>
+      </div>`;
+    return;
+  }
+
+  const n1map = N1[n1];
+  const n2map = n2 ? N2[n2] : null;
+  const base = BASE[depth];
+
+  let total = 0;
+  const scores = {};
+
+  for (const key of Object.keys(EXPEDITIONS)) {
+    const expKey = key.replace(/^es_/, '');
+    const w1 = getWeight(n1map, expKey);
+    const w2 = getWeight(n2map, expKey);
+    const prior = base[key];
+    const score = prior * w1 * w2;
+    scores[key] = score;
+    total += score;
+  }
+
+  const entries = Object.entries(scores)
+    .filter(([, s]) => s > 0)
+    .map(([k, s]) => ({ key: k, score: s, pct: (s / total) * 100 }))
+    .sort((a, b) => b.pct - a.pct);
+
+  if (entries.length === 0) {
+    out.innerHTML = `
+      <div class="empty-state" style="color: var(--danger);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
+        </svg>
+        <p>No valid combination.<br>Those Night 1 / Night 2 bosses do not share a Nightlord.</p>
+      </div>`;
+    return;
+  }
+
+  const maxPct = entries[0].pct;
+  const settled = entries.length === 1 || Math.abs(entries[0].pct - 100) < 0.1;
+
+  let html = '<div class="results-header">';
+  if (settled) {
+    html += `<span class="results-count">Locked In</span><span class="locked-badge">${entries.length} Possibility</span>`;
+  } else {
+    html += `<span class="results-count">Possible Nightlords</span><span style="color:var(--text-muted);font-size:0.8rem;">${entries.length} matches</span>`;
+  }
+  html += '</div><div class="boss-list">';
+
+  for (const e of entries) {
+    const boss = EXPEDITIONS[e.key];
+    const barW = (e.pct / (maxPct || 1)) * 100;
+    const isLocked = settled && e === entries[0];
+    const initial = INITIALS[e.key.replace(/^es_/, '')] || '?';
+    const iconHtml = boss.icon
+      ? `<img src="${boss.icon}" alt="${initial}" onerror="this.parentElement.textContent='${initial}';this.remove()">`
+      : initial;
+
+    html += `
+      <div class="boss-row ${isLocked ? 'locked' : ''}">
+        <div class="boss-icon">${iconHtml}</div>
+        <div class="boss-info">
+          <div class="boss-name">
+            ${boss.everdark ? '<span class="everdark">Everdark</span>' : ''}
+            ${boss.name}
+          </div>
+          <div class="boss-meta">${boss.expedition}</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${barW.toFixed(1)}%"></div>
+        </div>
+        <div class="boss-pct">${e.pct.toFixed(1)}%</div>
+      </div>
+    `;
+  }
+
+  html += '</div>';
+  out.innerHTML = html;
+}
+
+['n1','n2','depth'].forEach(id => document.getElementById(id).addEventListener('change', calc));
+</script>
+</body>
+</html>
