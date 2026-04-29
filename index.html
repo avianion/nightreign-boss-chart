@@ -393,6 +393,24 @@
     letter-spacing: 0.05em;
   }
 
+  .variant-split {
+    margin-left: 6px;
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-size: 0.72rem;
+  }
+
+  .variant-split .variant-everdark {
+    color: #c084fc;
+  }
+
+  .variant-split .variant-sep {
+    margin: 0 4px;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
   .bar-track {
     flex: 1.5;
     height: 8px;
@@ -646,10 +664,92 @@ function getWeight(map, expeditionKey) {
   return map[expeditionKey] ?? 0;
 }
 
+// --- Dynamic dropdown filtering -------------------------------------------
+const n1Sel = document.getElementById('n1');
+const n2Sel = document.getElementById('n2');
+const depthSel = document.getElementById('depth');
+
+// Snapshot the original option lists so we can rebuild them dynamically.
+const N1_OPTIONS = Array.from(n1Sel.options)
+  .filter(o => o.value)
+  .map(o => ({ value: o.value, label: o.textContent }));
+const N2_OPTIONS = Array.from(n2Sel.options)
+  .filter(o => o.value)
+  .map(o => ({ value: o.value, label: o.textContent }));
+
+function compatibleN2For(n1Key) {
+  const n1map = N1[n1Key];
+  if (!n1map) return null;
+  const n1Set = new Set(Object.keys(n1map));
+  const valid = new Set();
+  for (const [n2Key, n2map] of Object.entries(N2)) {
+    if (Object.keys(n2map).some(nl => n1Set.has(nl))) valid.add(n2Key);
+  }
+  return valid;
+}
+
+function compatibleN1For(n2Key) {
+  const n2map = N2[n2Key];
+  if (!n2map) return null;
+  const n2Set = new Set(Object.keys(n2map));
+  const valid = new Set();
+  for (const [n1Key, n1map] of Object.entries(N1)) {
+    if (Object.keys(n1map).some(nl => n2Set.has(nl))) valid.add(n1Key);
+  }
+  return valid;
+}
+
+function rebuildSelect(sel, options, validSet, placeholder) {
+  const previous = sel.value;
+  while (sel.firstChild) sel.removeChild(sel.firstChild);
+  const ph = document.createElement('option');
+  ph.value = '';
+  ph.textContent = placeholder;
+  sel.appendChild(ph);
+  for (const opt of options) {
+    if (validSet && !validSet.has(opt.value)) continue;
+    const el = document.createElement('option');
+    el.value = opt.value;
+    el.textContent = opt.label;
+    sel.appendChild(el);
+  }
+  if (previous && Array.from(sel.options).some(o => o.value === previous)) {
+    sel.value = previous;
+    return previous;
+  }
+  sel.value = '';
+  return '';
+}
+
+function onN1Change() {
+  const n1Val = n1Sel.value;
+  const validN2 = n1Val ? compatibleN2For(n1Val) : null;
+  rebuildSelect(n2Sel, N2_OPTIONS, validN2, 'Not seen yet...');
+  calc();
+}
+
+function onN2Change() {
+  const n2Val = n2Sel.value;
+  const validN1 = n2Val ? compatibleN1For(n2Val) : null;
+  rebuildSelect(n1Sel, N1_OPTIONS, validN1, 'Choose a boss...');
+  // If the previously selected N1 was just dropped, also re-narrow N2 to match.
+  const newN1 = n1Sel.value;
+  if (newN1) {
+    const validN2 = compatibleN2For(newN1);
+    rebuildSelect(n2Sel, N2_OPTIONS, validN2, 'Not seen yet...');
+  }
+  calc();
+}
+
+n1Sel.addEventListener('change', onN1Change);
+n2Sel.addEventListener('change', onN2Change);
+depthSel.addEventListener('change', calc);
+
+// --- Probability calculation ----------------------------------------------
 function calc() {
-  const n1 = document.getElementById('n1').value;
-  const n2 = document.getElementById('n2').value;
-  const depth = document.getElementById('depth').value;
+  const n1 = n1Sel.value;
+  const n2 = n2Sel.value;
+  const depth = depthSel.value;
   const out = document.getElementById('output');
 
   if (!n1) {
@@ -680,9 +780,28 @@ function calc() {
     total += score;
   }
 
-  const entries = Object.entries(scores)
-    .filter(([, s]) => s > 0)
-    .map(([k, s]) => ({ key: k, score: s, pct: (s / total) * 100 }))
+  // Aggregate Everdark + regular variants into a single Nightlord entry.
+  const grouped = {};
+  for (const [key, score] of Object.entries(scores)) {
+    if (!(score > 0)) continue;
+    const baseKey = key.replace(/^es_/, '');
+    if (!grouped[baseKey]) {
+      grouped[baseKey] = { key: baseKey, score: 0, regularScore: 0, everdarkScore: 0 };
+    }
+    grouped[baseKey].score += score;
+    if (key.startsWith('es_')) grouped[baseKey].everdarkScore += score;
+    else grouped[baseKey].regularScore += score;
+  }
+
+  const entries = Object.values(grouped)
+    .map(g => ({
+      key: g.key,
+      score: g.score,
+      pct: (g.score / total) * 100,
+      regularPct: (g.regularScore / total) * 100,
+      everdarkPct: (g.everdarkScore / total) * 100,
+      hasBoth: g.regularScore > 0 && g.everdarkScore > 0,
+    }))
     .sort((a, b) => b.pct - a.pct);
 
   if (entries.length === 0) {
@@ -711,20 +830,26 @@ function calc() {
     const boss = EXPEDITIONS[e.key];
     const barW = (e.pct / (maxPct || 1)) * 100;
     const isLocked = settled && e === entries[0];
-    const initial = INITIALS[e.key.replace(/^es_/, '')] || '?';
-    const iconHtml = boss.icon
+    const initial = INITIALS[e.key] || '?';
+    const iconHtml = boss && boss.icon
       ? `<img src="${boss.icon}" alt="${initial}" onerror="this.parentElement.textContent='${initial}';this.remove()">`
       : initial;
 
+    const splitHtml = e.hasBoth
+      ? `<span class="variant-split">` +
+          `<span class="variant-sep">·</span>` +
+          `Regular ${e.regularPct.toFixed(1)}%` +
+          `<span class="variant-sep">·</span>` +
+          `<span class="variant-everdark">Everdark ${e.everdarkPct.toFixed(1)}%</span>` +
+        `</span>`
+      : '';
+
     html += `
       <div class="boss-row ${isLocked ? 'locked' : ''}">
-        <div class="boss-icon ${boss.everdark ? 'everdark' : ''}">${iconHtml}</div>
+        <div class="boss-icon">${iconHtml}</div>
         <div class="boss-info">
-          <div class="boss-name">
-            ${boss.everdark ? '<span class="everdark">Everdark</span>' : ''}
-            ${boss.name}
-          </div>
-          <div class="boss-meta">${boss.expedition}</div>
+          <div class="boss-name">${boss ? boss.name : e.key}</div>
+          <div class="boss-meta">${boss ? boss.expedition : ''}${splitHtml}</div>
         </div>
         <div class="bar-track">
           <div class="bar-fill" style="width:${barW.toFixed(1)}%"></div>
@@ -737,8 +862,6 @@ function calc() {
   html += '</div>';
   out.innerHTML = html;
 }
-
-['n1','n2','depth'].forEach(id => document.getElementById(id).addEventListener('change', calc));
 </script>
 </body>
 </html>
