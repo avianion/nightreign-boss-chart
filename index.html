@@ -126,68 +126,58 @@
     .card { padding: 20px 16px; }
     .results-header { margin-bottom: 12px; padding-bottom: 10px; }
 
-    .boss-row {
-      display: grid;
-      grid-template-columns: 40px 1fr auto;
-      grid-template-rows: auto auto;
-      gap: 6px 10px;
-      padding: 10px 12px;
-      align-items: start;
+    .boss-list { gap: 10px; }
+
+    .boss-card {
+      padding: 14px 16px;
+      border-radius: 10px;
     }
 
-    .boss-icon {
-      width: 40px;
-      height: 40px;
-      grid-row: 1 / 3;
-      align-self: center;
+    .boss-card-head {
+      gap: 10px;
     }
 
-    .boss-info {
-      min-width: 0;
-      grid-column: 2;
-      grid-row: 1;
-      align-self: center;
-    }
-
-    .boss-name {
-      font-size: 0.9rem;
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
+    .boss-card-name {
+      font-size: 0.92rem;
       line-height: 1.3;
-      margin-bottom: 0;
     }
 
-    .boss-name .everdark {
+    .boss-card-meta {
+      font-size: 0.65rem;
+      margin-top: 4px;
+      letter-spacing: 0.1em;
+    }
+
+    .boss-card-pct {
+      font-size: 1.2rem;
+    }
+
+    .variant-row {
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .variant-chip {
+      padding: 8px 10px;
+      gap: 9px;
+    }
+
+    .variant-chip-icon {
+      width: 36px;
+      height: 36px;
+    }
+
+    .variant-chip-label {
       font-size: 0.6rem;
-      padding: 1px 4px;
-      display: inline-block;
-      margin-right: 4px;
-      vertical-align: middle;
+      letter-spacing: 0.1em;
     }
 
-    .boss-meta {
-      font-size: 0.7rem;
-      margin-top: 2px;
+    .variant-chip-pct {
+      font-size: 0.95rem;
     }
 
-    .boss-pct {
-      grid-column: 3;
-      grid-row: 1;
-      width: auto;
-      font-size: 0.9rem;
-      align-self: center;
-      text-align: right;
-    }
-
-    .bar-track {
-      display: none;
-    }
-
-    .boss-pct {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--accent);
+    .boss-card-bar {
+      margin-top: 12px;
     }
   }
 
@@ -301,152 +291,215 @@
     box-shadow: 0 0 8px var(--success);
   }
 
-  /* Boss Rows */
+  /* Boss Cards */
   .boss-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 12px;
   }
 
-  .boss-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 16px;
-    border-radius: 8px;
-    transition: background 0.2s ease;
-  }
-
-  .boss-row:hover {
-    background: rgba(255,255,255,0.02);
-  }
-
-  .boss-row.locked {
-    background: rgba(76, 201, 136, 0.05);
-    border: 1px solid rgba(76, 201, 136, 0.15);
-  }
-
-  .boss-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    background: var(--bg-elevated);
+  .boss-card {
+    background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-card) 100%);
     border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    color: var(--accent-dim);
-    flex-shrink: 0;
+    border-radius: 12px;
+    padding: 18px 22px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    position: relative;
     overflow: hidden;
   }
 
-  .boss-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 6px;
+  .boss-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
-  .boss-icon.everdark {
-    border-color: #7c3aed;
-    box-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+  .boss-card:hover {
+    border-color: rgba(201, 168, 76, 0.3);
+    box-shadow: 0 0 28px rgba(201, 168, 76, 0.06);
   }
 
-  .boss-icon.everdark img {
-    filter: hue-rotate(60deg) saturate(1.8) brightness(0.85);
+  .boss-card:hover::before {
+    opacity: 1;
   }
 
-  .boss-info {
+  .boss-card.locked {
+    border-color: rgba(76, 201, 136, 0.45);
+    background: linear-gradient(180deg, rgba(76, 201, 136, 0.08) 0%, rgba(76, 201, 136, 0.02) 100%);
+    box-shadow: 0 0 28px rgba(76, 201, 136, 0.1);
+  }
+
+  .boss-card.locked::before {
+    background: linear-gradient(90deg, transparent, rgba(76, 201, 136, 0.3), transparent);
+    opacity: 1;
+  }
+
+  .boss-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .boss-card-titles {
     flex: 1;
     min-width: 0;
   }
 
-  .boss-name {
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .boss-name .everdark {
-    color: #c084fc;
-    font-size: 0.7rem;
+  .boss-card-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1.05rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-right: 6px;
-    background: rgba(124, 58, 237, 0.15);
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(124, 58, 237, 0.3);
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
   }
 
-  .boss-meta {
-    font-size: 0.75rem;
+  .boss-card-meta {
+    font-size: 0.7rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.14em;
+    margin-top: 5px;
   }
 
-  .variant-split {
-    margin-left: 6px;
-    color: var(--text-secondary);
-    text-transform: none;
+  .boss-card-pct {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    line-height: 1;
     letter-spacing: 0.02em;
-    font-size: 0.72rem;
+    text-shadow: 0 2px 12px rgba(201, 168, 76, 0.25);
   }
 
-  .variant-split .variant-everdark {
+  .boss-card.locked .boss-card-pct {
+    color: var(--success);
+    text-shadow: 0 2px 12px rgba(76, 201, 136, 0.3);
+  }
+
+  /* Variant chip row */
+  .variant-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .variant-row.solo {
+    justify-content: flex-start;
+  }
+
+  .variant-chip {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .variant-chip:hover {
+    border-color: rgba(201, 168, 76, 0.25);
+  }
+
+  .variant-chip.everdark {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, rgba(0, 0, 0, 0.3) 100%);
+    border-color: rgba(124, 58, 237, 0.25);
+  }
+
+  .variant-chip.everdark:hover {
+    border-color: rgba(124, 58, 237, 0.5);
+  }
+
+  .variant-chip.solo-chip {
+    flex: 0 0 auto;
+    padding: 6px;
+  }
+
+  .variant-chip-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .variant-chip-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .variant-chip.everdark .variant-chip-icon {
+    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.35) inset;
+  }
+
+  .variant-chip.everdark .variant-chip-icon img {
+    filter: hue-rotate(60deg) saturate(1.8) brightness(0.85);
+  }
+
+  .variant-chip-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .variant-chip-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .variant-chip.everdark .variant-chip-label {
     color: #c084fc;
   }
 
-  .variant-split .variant-sep {
-    margin: 0 4px;
-    color: var(--text-muted);
-    opacity: 0.6;
+  .variant-chip-pct {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
   }
 
-  .bar-track {
-    flex: 1.5;
-    height: 8px;
+  /* Slim progress bar at bottom */
+  .boss-card-bar {
+    height: 4px;
     background: var(--bar-bg);
-    border-radius: 4px;
+    border-radius: 2px;
     overflow: hidden;
+    margin-top: 14px;
     position: relative;
   }
 
-  .bar-fill {
+  .boss-card-bar-fill {
     height: 100%;
     background: var(--bar-fill);
-    border-radius: 4px;
+    border-radius: 2px;
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-    position: relative;
   }
 
-  .bar-fill::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 20px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));
-    border-radius: 0 4px 4px 0;
-  }
-
-  .boss-pct {
-    width: 60px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--accent);
-    flex-shrink: 0;
+  .boss-card.locked .boss-card-bar-fill {
+    background: linear-gradient(90deg, rgba(76, 201, 136, 0.6), var(--success));
   }
 
   /* Empty state */
@@ -558,7 +611,6 @@
     <div class="depth-row">
       <select id="depth">
         <option value="any">Unknown / Any Depth</option>
-        <option value="d2">Depth 2</option>
         <option value="d3" selected>Depth 3</option>
         <option value="d4">Depth 4</option>
         <option value="d5">Depth 5</option>
@@ -828,39 +880,72 @@ function calc() {
 
   for (const e of entries) {
     const boss = EXPEDITIONS[e.key];
+    const everdarkBoss = EXPEDITIONS['es_' + e.key];
     const barW = (e.pct / (maxPct || 1)) * 100;
     const isLocked = settled && e === entries[0];
     const initial = INITIALS[e.key] || '?';
-    const iconHtml = boss && boss.icon
-      ? `<img src="${boss.icon}" alt="${initial}" onerror="this.parentElement.textContent='${initial}';this.remove()">`
+
+    const regIcon = boss && boss.icon
+      ? `<img src="${boss.icon}" alt="${escapeAttr(boss.name)}" onerror="this.parentElement.textContent='${initial}';this.remove()">`
+      : initial;
+    const edIcon = everdarkBoss && everdarkBoss.icon
+      ? `<img src="${everdarkBoss.icon}" alt="${escapeAttr(everdarkBoss.name)}" onerror="this.parentElement.textContent='${initial}';this.remove()">`
       : initial;
 
-    const splitHtml = e.hasBoth
-      ? `<span class="variant-split">` +
-          `<span class="variant-sep">·</span>` +
-          `Regular ${e.regularPct.toFixed(1)}%` +
-          `<span class="variant-sep">·</span>` +
-          `<span class="variant-everdark">Everdark ${e.everdarkPct.toFixed(1)}%</span>` +
-        `</span>`
-      : '';
+    let variantsHtml;
+    if (e.hasBoth) {
+      variantsHtml = `
+        <div class="variant-row">
+          <div class="variant-chip">
+            <div class="variant-chip-icon">${regIcon}</div>
+            <div class="variant-chip-info">
+              <div class="variant-chip-label">Regular</div>
+              <div class="variant-chip-pct">${e.regularPct.toFixed(1)}%</div>
+            </div>
+          </div>
+          <div class="variant-chip everdark">
+            <div class="variant-chip-icon">${edIcon}</div>
+            <div class="variant-chip-info">
+              <div class="variant-chip-label">Everdark</div>
+              <div class="variant-chip-pct">${e.everdarkPct.toFixed(1)}%</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // Single variant — show one chip without label/pct (header carries the %)
+      variantsHtml = `
+        <div class="variant-row solo">
+          <div class="variant-chip solo-chip">
+            <div class="variant-chip-icon">${regIcon}</div>
+          </div>
+        </div>
+      `;
+    }
 
     html += `
-      <div class="boss-row ${isLocked ? 'locked' : ''}">
-        <div class="boss-icon">${iconHtml}</div>
-        <div class="boss-info">
-          <div class="boss-name">${boss ? boss.name : e.key}</div>
-          <div class="boss-meta">${boss ? boss.expedition : ''}${splitHtml}</div>
+      <div class="boss-card ${isLocked ? 'locked' : ''}">
+        <div class="boss-card-head">
+          <div class="boss-card-titles">
+            <div class="boss-card-name">${boss ? boss.name : e.key}</div>
+            <div class="boss-card-meta">${boss ? boss.expedition : ''}</div>
+          </div>
+          <div class="boss-card-pct">${e.pct.toFixed(1)}%</div>
         </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${barW.toFixed(1)}%"></div>
+        ${variantsHtml}
+        <div class="boss-card-bar">
+          <div class="boss-card-bar-fill" style="width:${barW.toFixed(1)}%"></div>
         </div>
-        <div class="boss-pct">${e.pct.toFixed(1)}%</div>
       </div>
     `;
   }
 
   html += '</div>';
   out.innerHTML = html;
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
 </body>
