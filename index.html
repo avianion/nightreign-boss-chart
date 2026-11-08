@@ -229,19 +229,6 @@
     padding: 10px;
   }
 
-  /* Depth selector */
-  .depth-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .depth-row select {
-    flex: 1;
-    min-width: 200px;
-  }
-
   .hint {
     color: var(--text-muted);
     font-size: 0.8rem;
@@ -607,16 +594,31 @@
   </div>
 
   <div class="card">
-    <div class="card-title">Depth Level</div>
-    <div class="depth-row">
-      <select id="depth">
-        <option value="any">Unknown / Any Depth</option>
-        <option value="d3" selected>Depth 3</option>
-        <option value="d4">Depth 4</option>
-        <option value="d5">Depth 5</option>
-      </select>
+    <div class="card-title">Depth &amp; Map</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="depth">Depth</label>
+        <select id="depth">
+          <option value="any">Unknown / Any Depth</option>
+          <option value="d3" selected>Depth 3</option>
+          <option value="d4">Depth 4</option>
+          <option value="d5">Depth 5</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="map">Map <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <select id="map">
+          <option value="">Unknown map</option>
+          <option value="default">Limveld (no Shifting Earth)</option>
+          <option value="crater">The Crater</option>
+          <option value="mountaintop">The Mountaintop</option>
+          <option value="rotted">Rotted Woods</option>
+          <option value="noklateo">Noklateo, the Shrouded City</option>
+          <option value="hollow">The Great Hollow</option>
+        </select>
+      </div>
     </div>
-    <p class="hint">Select your current DoN depth to weight predictions by real game odds. Pick "Unknown" for an unweighted view.</p>
+    <p class="hint">Depth weights each Nightlord by its datamined odds; pick "Unknown" for an unweighted view. Map is the Shifting Earth or region you dropped into. Setting it narrows the matching map patterns.</p>
   </div>
 
   <div class="card" id="output">
@@ -631,8 +633,8 @@
   <div class="divider"></div>
 
   <p class="footer-note">
-    Data sourced from community sheets and datamined odds. DLC bosses require all party members to own The Forsaken Hollows.<br>
-    Heolstor can draw from any boss pool, making him an ever-present wildcard.<br><br>
+    Predictions count the datamined map patterns (<a href="https://thefifthmatt.github.io/nightreign/" target="_blank" rel="noopener">thefifthmatt</a>): every pattern fixes the map, the Night 1 boss and the Night 2 boss, so only Nightlords with a matching pattern are shown. Nightlord odds per depth are datamined. DLC bosses require all party members to own The Forsaken Hollows.<br>
+    Heolstor borrows bosses from every pool, but each of his 50 patterns is one fixed Night 1 + Night 2 pair, so most combinations rule him out.<br><br>
     <strong>Disclaimer:</strong> This is a fan-made project and is not affiliated with, endorsed by, or connected to FromSoftware or Bandai Namco. Elden Ring and Nightreign are trademarks of their respective owners.
   </p>
 </div>
@@ -666,44 +668,576 @@ const BASE = {
   d4:   { gladius:5.04, adel:5.04, gnoster:5.04, maris:2.52, libra:5.04, fulghor:5.04, caligo:5.04, heolstor:7.06, dreglord:11.29, balancers:8.06, es_gladius:5.04, es_adel:5.04, es_gnoster:5.04, es_maris:2.52, es_libra:5.04, es_fulghor:5.04, es_caligo:5.04, es_balancers:8.06 },
   d5:   { gladius:5.04, adel:5.04, gnoster:5.04, maris:2.52, libra:5.04, fulghor:5.04, caligo:5.04, heolstor:7.06, dreglord:11.29, balancers:8.06, es_gladius:5.04, es_adel:5.04, es_gnoster:5.04, es_maris:2.52, es_libra:5.04, es_fulghor:5.04, es_caligo:5.04, es_balancers:8.06 }};
 
-const N1 = {
-  battlefield: { gnoster:1, libra:1, heolstor:1 },
-  bbh:         { gladius:1, caligo:1, heolstor:1 },
-  centipede:   { gnoster:1, libra:1, fulghor:1, heolstor:1 },
-  demi:        { gladius:1, heolstor:1 },
-  gaping:      { adel:1, maris:1, fulghor:1, heolstor:1 },
-  grafted:     { maris:1, caligo:1, heolstor:1 },
-  cavalry:     { adel:1, fulghor:1, heolstor:1 },
-  revenant:    { libra:1, fulghor:1, heolstor:1 },
-  smelter:     { gnoster:1, maris:1, caligo:1, heolstor:1 },
-  freja:       { adel:1, libra:1, caligo:1, heolstor:1 },
-  tibia:       { gnoster:1, libra:1, caligo:1, heolstor:1 },
-  tree:        { gnoster:1, caligo:1, heolstor:1 },
-  gargoyle:    { adel:1, maris:1, fulghor:1, heolstor:1 },
-  wormface:    { adel:1, maris:1, fulghor:1, heolstor:1 },
-  deathknight: { dreglord:1 },
-  demons:      { balancers:1 },
-  warrior:     { balancers:1 },
-  bear:        { dreglord:1 }};
+// --- Map patterns -----------------------------------------------------------
+// Every expedition rolls one of its Nightlord's fixed map patterns, and the
+// pattern decides the map, the Night 1 boss and the Night 2 boss. So the
+// Nightlord is predicted by counting the patterns that match what was seen,
+// not by intersecting per-night boss pools: Heolstor's 50 patterns borrow
+// bosses from every pool, but each one is a single fixed Night 1 + Night 2 pair.
+// "Extra Night Boss" patterns put a second boss on one night; seeing either counts.
+//
+// Generated by tools/build_seeds.py from thefifthmatt's datamined pattern dump.
+// Don't hand-edit; rerun the script after game updates.
+// [patternId, nightlord, map, night1, night2, night1Extra, night2Extra]
+// <seeds>
+const SEEDS = [
+  [0,'gladius','default','demi','treesent','',''],
+  [1,'gladius','default','demi','treesent','',''],
+  [2,'gladius','default','bbh','fell','',''],
+  [3,'gladius','default','bbh','fell','',''],
+  [4,'gladius','default','demi','treesent','',''],
+  [5,'gladius','default','demi','fell','',''],
+  [6,'gladius','default','demi','fell','',''],
+  [7,'gladius','default','bbh','fell','',''],
+  [8,'gladius','default','bbh','fell','',''],
+  [9,'gladius','default','bbh','fell','',''],
+  [10,'gladius','default','bbh','fell','',''],
+  [11,'gladius','default','demi','treesent','',''],
+  [12,'gladius','default','demi','treesent','',''],
+  [13,'gladius','default','demi','fell','',''],
+  [14,'gladius','default','bbh','treesent','',''],
+  [15,'gladius','default','bbh','treesent','',''],
+  [16,'gladius','default','demi','treesent','',''],
+  [17,'gladius','default','bbh','treesent','',''],
+  [18,'gladius','default','bbh','treesent','',''],
+  [19,'gladius','default','demi','fell','',''],
+  [20,'gladius','mountaintop','bbh','treesent','',''],
+  [21,'gladius','mountaintop','bbh','fell','',''],
+  [22,'gladius','mountaintop','demi','treesent','',''],
+  [23,'gladius','mountaintop','bbh','fell','',''],
+  [24,'gladius','mountaintop','demi','fell','',''],
+  [25,'gladius','crater','bbh','treesent','',''],
+  [26,'gladius','crater','demi','treesent','',''],
+  [27,'gladius','crater','demi','fell','',''],
+  [28,'gladius','crater','bbh','fell','',''],
+  [29,'gladius','crater','bbh','fell','',''],
+  [30,'gladius','rotted','demi','fell','',''],
+  [31,'gladius','rotted','demi','fell','',''],
+  [32,'gladius','rotted','bbh','treesent','',''],
+  [33,'gladius','rotted','demi','fell','',''],
+  [34,'gladius','rotted','bbh','treesent','',''],
+  [35,'gladius','noklateo','demi','fell','',''],
+  [36,'gladius','noklateo','bbh','fell','',''],
+  [37,'gladius','noklateo','bbh','treesent','',''],
+  [38,'gladius','noklateo','demi','treesent','',''],
+  [39,'gladius','noklateo','demi','fell','',''],
+  [40,'adel','default','cavalry','ancient','',''],
+  [41,'adel','default','gaping','ancient','',''],
+  [42,'adel','default','freja','crucible','',''],
+  [43,'adel','default','wormface','ancient','',''],
+  [44,'adel','default','gaping','ancient','',''],
+  [45,'adel','default','cavalry','outland','',''],
+  [46,'adel','default','freja','ancient','','nox'],
+  [47,'adel','default','gaping','ancient','','deathrite'],
+  [48,'adel','default','cavalry','outland','',''],
+  [49,'adel','default','freja','crucible','',''],
+  [50,'adel','default','gargoyle','outland','',''],
+  [51,'adel','default','freja','ancient','',''],
+  [52,'adel','default','cavalry','crucible','',''],
+  [53,'adel','default','gargoyle','crucible','',''],
+  [54,'adel','default','gargoyle','ancient','',''],
+  [55,'adel','default','wormface','outland','',''],
+  [56,'adel','default','wormface','ancient','',''],
+  [57,'adel','default','gargoyle','ancient','',''],
+  [58,'adel','default','wormface','outland','',''],
+  [59,'adel','default','gaping','crucible','',''],
+  [60,'adel','mountaintop','freja','ancient','',''],
+  [61,'adel','mountaintop','gaping','crucible','',''],
+  [62,'adel','mountaintop','wormface','outland','',''],
+  [63,'adel','mountaintop','gargoyle','crucible','',''],
+  [64,'adel','mountaintop','cavalry','ancient','',''],
+  [65,'adel','crater','gargoyle','crucible','',''],
+  [66,'adel','crater','gaping','outland','',''],
+  [67,'adel','crater','cavalry','ancient','',''],
+  [68,'adel','crater','freja','ancient','','crucible'],
+  [69,'adel','crater','wormface','crucible','',''],
+  [70,'adel','rotted','gargoyle','ancient','smelter',''],
+  [71,'adel','rotted','freja','outland','',''],
+  [72,'adel','rotted','wormface','outland','',''],
+  [73,'adel','rotted','gaping','ancient','',''],
+  [74,'adel','rotted','cavalry','crucible','',''],
+  [75,'adel','noklateo','gargoyle','outland','',''],
+  [76,'adel','noklateo','cavalry','ancient','',''],
+  [77,'adel','noklateo','freja','crucible','',''],
+  [78,'adel','noklateo','wormface','outland','',''],
+  [79,'adel','noklateo','gaping','ancient','',''],
+  [80,'gnoster','default','tibia','wyrm','',''],
+  [81,'gnoster','default','smelter','nox','',''],
+  [82,'gnoster','default','smelter','nox','',''],
+  [83,'gnoster','default','battlefield','draconic','',''],
+  [84,'gnoster','default','tibia','draconic','',''],
+  [85,'gnoster','default','tibia','nox','',''],
+  [86,'gnoster','default','smelter','draconic','',''],
+  [87,'gnoster','default','battlefield','draconic','',''],
+  [88,'gnoster','default','tree','wyrm','',''],
+  [89,'gnoster','default','smelter','nox','',''],
+  [90,'gnoster','default','centipede','nox','',''],
+  [91,'gnoster','default','centipede','wyrm','',''],
+  [92,'gnoster','default','battlefield','nox','',''],
+  [93,'gnoster','default','tree','wyrm','',''],
+  [94,'gnoster','default','battlefield','wyrm','',''],
+  [95,'gnoster','default','tree','draconic','',''],
+  [96,'gnoster','default','tree','wyrm','',''],
+  [97,'gnoster','default','centipede','wyrm','',''],
+  [98,'gnoster','default','tibia','wyrm','',''],
+  [99,'gnoster','default','centipede','draconic','',''],
+  [100,'gnoster','mountaintop','smelter','draconic','',''],
+  [101,'gnoster','mountaintop','centipede','wyrm','',''],
+  [102,'gnoster','mountaintop','tibia','draconic','',''],
+  [103,'gnoster','mountaintop','battlefield','wyrm','',''],
+  [104,'gnoster','mountaintop','tree','nox','',''],
+  [105,'gnoster','crater','centipede','nox','',''],
+  [106,'gnoster','crater','tibia','nox','',''],
+  [107,'gnoster','crater','smelter','draconic','',''],
+  [108,'gnoster','crater','tree','draconic','',''],
+  [109,'gnoster','crater','battlefield','draconic','',''],
+  [110,'gnoster','rotted','smelter','wyrm','',''],
+  [111,'gnoster','rotted','centipede','wyrm','',''],
+  [112,'gnoster','rotted','tree','nox','',''],
+  [113,'gnoster','rotted','tibia','draconic','',''],
+  [114,'gnoster','rotted','battlefield','nox','',''],
+  [115,'gnoster','noklateo','tree','draconic','',''],
+  [116,'gnoster','noklateo','centipede','nox','',''],
+  [117,'gnoster','noklateo','battlefield','wyrm','',''],
+  [118,'gnoster','noklateo','tibia','wyrm','',''],
+  [119,'gnoster','noklateo','smelter','nox','',''],
+  [120,'maris','default','gaping','godskin','',''],
+  [121,'maris','default','gargoyle','treesent','',''],
+  [122,'maris','default','wormface','godskin','',''],
+  [123,'maris','default','gaping','treesent','',''],
+  [124,'maris','default','wormface','fallingstar','',''],
+  [125,'maris','default','smelter','fallingstar','',''],
+  [126,'maris','default','gargoyle','treesent','',''],
+  [127,'maris','default','grafted','fallingstar','',''],
+  [128,'maris','default','smelter','treesent','',''],
+  [129,'maris','default','grafted','treesent','',''],
+  [130,'maris','default','smelter','fallingstar','',''],
+  [131,'maris','default','gaping','fallingstar','',''],
+  [132,'maris','default','smelter','godskin','',''],
+  [133,'maris','default','gargoyle','fallingstar','',''],
+  [134,'maris','default','wormface','treesent','',''],
+  [135,'maris','default','gaping','fallingstar','',''],
+  [136,'maris','default','wormface','godskin','',''],
+  [137,'maris','default','gargoyle','godskin','',''],
+  [138,'maris','default','grafted','godskin','',''],
+  [139,'maris','default','grafted','fallingstar','',''],
+  [140,'maris','mountaintop','gargoyle','treesent','',''],
+  [141,'maris','mountaintop','grafted','godskin','',''],
+  [142,'maris','mountaintop','smelter','fallingstar','',''],
+  [143,'maris','mountaintop','wormface','treesent','',''],
+  [144,'maris','mountaintop','gaping','fallingstar','',''],
+  [145,'maris','crater','wormface','godskin','',''],
+  [146,'maris','crater','smelter','fallingstar','',''],
+  [147,'maris','crater','grafted','fallingstar','',''],
+  [148,'maris','crater','gaping','treesent','',''],
+  [149,'maris','crater','gargoyle','godskin','',''],
+  [150,'maris','rotted','wormface','treesent','',''],
+  [151,'maris','rotted','gaping','fallingstar','',''],
+  [152,'maris','rotted','grafted','fallingstar','',''],
+  [153,'maris','rotted','smelter','godskin','',''],
+  [154,'maris','rotted','gargoyle','godskin','',''],
+  [155,'maris','noklateo','grafted','godskin','',''],
+  [156,'maris','noklateo','gaping','fallingstar','',''],
+  [157,'maris','noklateo','gargoyle','treesent','',''],
+  [158,'maris','noklateo','smelter','fallingstar','',''],
+  [159,'maris','noklateo','wormface','godskin','',''],
+  [160,'libra','default','battlefield','crucible','',''],
+  [161,'libra','default','tibia','deathrite','',''],
+  [162,'libra','default','centipede','deathrite','',''],
+  [163,'libra','default','tibia','crucible','',''],
+  [164,'libra','default','centipede','godskin','',''],
+  [165,'libra','default','battlefield','deathrite','',''],
+  [166,'libra','default','freja','crucible','',''],
+  [167,'libra','default','freja','deathrite','',''],
+  [168,'libra','default','revenant','deathrite','',''],
+  [169,'libra','default','tibia','godskin','',''],
+  [170,'libra','default','revenant','deathrite','',''],
+  [171,'libra','default','freja','deathrite','',''],
+  [172,'libra','default','centipede','godskin','',''],
+  [173,'libra','default','freja','deathrite','',''],
+  [174,'libra','default','centipede','crucible','',''],
+  [175,'libra','default','tibia','crucible','',''],
+  [176,'libra','default','battlefield','godskin','',''],
+  [177,'libra','default','battlefield','deathrite','',''],
+  [178,'libra','default','revenant','crucible','',''],
+  [179,'libra','default','revenant','deathrite','',''],
+  [180,'libra','mountaintop','revenant','crucible','',''],
+  [181,'libra','mountaintop','centipede','godskin','',''],
+  [182,'libra','mountaintop','battlefield','deathrite','',''],
+  [183,'libra','mountaintop','freja','crucible','',''],
+  [184,'libra','mountaintop','tibia','deathrite','',''],
+  [185,'libra','crater','centipede','deathrite','',''],
+  [186,'libra','crater','revenant','godskin','',''],
+  [187,'libra','crater','freja','crucible','',''],
+  [188,'libra','crater','tibia','deathrite','',''],
+  [189,'libra','crater','battlefield','crucible','',''],
+  [190,'libra','rotted','freja','crucible','',''],
+  [191,'libra','rotted','battlefield','crucible','',''],
+  [192,'libra','rotted','centipede','deathrite','',''],
+  [193,'libra','rotted','revenant','godskin','',''],
+  [194,'libra','rotted','tibia','deathrite','',''],
+  [195,'libra','noklateo','battlefield','godskin','',''],
+  [196,'libra','noklateo','freja','crucible','',''],
+  [197,'libra','noklateo','centipede','crucible','',''],
+  [198,'libra','noklateo','tibia','deathrite','',''],
+  [199,'libra','noklateo','revenant','deathrite','',''],
+  [200,'fulghor','default','gaping','nameless','',''],
+  [201,'fulghor','default','revenant','outland','',''],
+  [202,'fulghor','default','centipede','outland','',''],
+  [203,'fulghor','default','wormface','nameless','',''],
+  [204,'fulghor','default','cavalry','outland','',''],
+  [205,'fulghor','default','centipede','nameless','',''],
+  [206,'fulghor','default','cavalry','nox','',''],
+  [207,'fulghor','default','wormface','nox','',''],
+  [208,'fulghor','default','wormface','outland','',''],
+  [209,'fulghor','default','centipede','nameless','','fell'],
+  [210,'fulghor','default','centipede','nameless','',''],
+  [211,'fulghor','default','gaping','nox','gargoyle',''],
+  [212,'fulghor','default','gaping','nameless','',''],
+  [213,'fulghor','default','revenant','nox','',''],
+  [214,'fulghor','default','cavalry','nameless','',''],
+  [215,'fulghor','default','cavalry','nameless','',''],
+  [216,'fulghor','default','gaping','nox','',''],
+  [217,'fulghor','default','revenant','outland','',''],
+  [218,'fulghor','default','wormface','nameless','',''],
+  [219,'fulghor','default','revenant','nameless','',''],
+  [220,'fulghor','mountaintop','wormface','nox','bbh',''],
+  [221,'fulghor','mountaintop','gaping','outland','',''],
+  [222,'fulghor','mountaintop','revenant','nameless','',''],
+  [223,'fulghor','mountaintop','centipede','nameless','',''],
+  [224,'fulghor','mountaintop','cavalry','nox','',''],
+  [225,'fulghor','crater','centipede','outland','',''],
+  [226,'fulghor','crater','revenant','nox','',''],
+  [227,'fulghor','crater','gaping','nameless','',''],
+  [228,'fulghor','crater','wormface','nox','',''],
+  [229,'fulghor','crater','cavalry','nameless','',''],
+  [230,'fulghor','rotted','centipede','nox','',''],
+  [231,'fulghor','rotted','wormface','nameless','',''],
+  [232,'fulghor','rotted','gaping','outland','',''],
+  [233,'fulghor','rotted','revenant','nameless','',''],
+  [234,'fulghor','rotted','cavalry','outland','','dancer'],
+  [235,'fulghor','noklateo','wormface','nox','',''],
+  [236,'fulghor','noklateo','gaping','nameless','',''],
+  [237,'fulghor','noklateo','revenant','outland','',''],
+  [238,'fulghor','noklateo','cavalry','nameless','',''],
+  [239,'fulghor','noklateo','centipede','outland','',''],
+  [240,'caligo','default','tree','dancer','',''],
+  [241,'caligo','default','tree','dancer','',''],
+  [242,'caligo','default','smelter','dancer','',''],
+  [243,'caligo','default','grafted','dancer','',''],
+  [244,'caligo','default','smelter','draconic','',''],
+  [245,'caligo','default','freja','godskin','',''],
+  [246,'caligo','default','grafted','dancer','',''],
+  [247,'caligo','default','freja','draconic','',''],
+  [248,'caligo','default','tibia','draconic','',''],
+  [249,'caligo','default','smelter','dancer','',''],
+  [250,'caligo','default','grafted','draconic','',''],
+  [251,'caligo','default','tree','dancer','',''],
+  [252,'caligo','default','grafted','godskin','',''],
+  [253,'caligo','default','smelter','dancer','',''],
+  [254,'caligo','default','tibia','godskin','',''],
+  [255,'caligo','default','freja','draconic','',''],
+  [256,'caligo','default','tree','godskin','',''],
+  [257,'caligo','default','freja','dancer','',''],
+  [258,'caligo','default','tibia','draconic','',''],
+  [259,'caligo','default','tibia','dancer','',''],
+  [260,'caligo','mountaintop','tree','godskin','',''],
+  [261,'caligo','mountaintop','smelter','dancer','',''],
+  [262,'caligo','mountaintop','grafted','draconic','',''],
+  [263,'caligo','mountaintop','tibia','dancer','',''],
+  [264,'caligo','mountaintop','freja','draconic','',''],
+  [265,'caligo','crater','grafted','dancer','',''],
+  [266,'caligo','crater','freja','dancer','',''],
+  [267,'caligo','crater','smelter','godskin','',''],
+  [268,'caligo','crater','tree','draconic','',''],
+  [269,'caligo','crater','tibia','draconic','',''],
+  [270,'caligo','rotted','freja','dancer','',''],
+  [271,'caligo','rotted','smelter','godskin','',''],
+  [272,'caligo','rotted','tibia','draconic','',''],
+  [273,'caligo','rotted','tree','draconic','',''],
+  [274,'caligo','rotted','grafted','dancer','',''],
+  [275,'caligo','noklateo','grafted','godskin','',''],
+  [276,'caligo','noklateo','freja','dancer','',''],
+  [277,'caligo','noklateo','tibia','draconic','',''],
+  [278,'caligo','noklateo','tree','draconic','',''],
+  [279,'caligo','noklateo','smelter','dancer','',''],
+  [280,'heolstor','default','gargoyle','deathrite','',''],
+  [281,'heolstor','default','smelter','wyrm','',''],
+  [282,'heolstor','default','freja','ancient','',''],
+  [283,'heolstor','default','gargoyle','dancer','',''],
+  [284,'heolstor','default','battlefield','crucible','',''],
+  [285,'heolstor','default','wormface','fell','',''],
+  [286,'heolstor','default','tree','deathrite','',''],
+  [287,'heolstor','default','revenant','nameless','',''],
+  [288,'heolstor','default','demi','draconic','',''],
+  [289,'heolstor','default','bbh','nox','',''],
+  [290,'heolstor','default','cavalry','fallingstar','',''],
+  [291,'heolstor','default','gaping','ancient','',''],
+  [292,'heolstor','default','centipede','nameless','',''],
+  [293,'heolstor','default','tree','outland','',''],
+  [294,'heolstor','default','revenant','wyrm','',''],
+  [295,'heolstor','default','grafted','godskin','',''],
+  [296,'heolstor','default','tibia','treesent','',''],
+  [297,'heolstor','default','cavalry','outland','',''],
+  [298,'heolstor','default','battlefield','fallingstar','',''],
+  [299,'heolstor','default','grafted','dancer','',''],
+  [300,'heolstor','mountaintop','gargoyle','wyrm','',''],
+  [301,'heolstor','mountaintop','cavalry','nox','',''],
+  [302,'heolstor','mountaintop','tibia','fallingstar','',''],
+  [303,'heolstor','mountaintop','battlefield','wyrm','',''],
+  [304,'heolstor','mountaintop','wormface','deathrite','',''],
+  [305,'heolstor','crater','grafted','crucible','',''],
+  [306,'heolstor','crater','bbh','fell','',''],
+  [307,'heolstor','crater','revenant','draconic','',''],
+  [308,'heolstor','crater','demi','outland','',''],
+  [309,'heolstor','crater','tree','treesent','',''],
+  [310,'heolstor','rotted','gaping','nameless','',''],
+  [311,'heolstor','rotted','demi','ancient','',''],
+  [312,'heolstor','rotted','freja','dancer','',''],
+  [313,'heolstor','rotted','smelter','wyrm','',''],
+  [314,'heolstor','rotted','centipede','fell','',''],
+  [315,'heolstor','noklateo','gargoyle','dancer','',''],
+  [316,'heolstor','noklateo','revenant','ancient','',''],
+  [317,'heolstor','noklateo','bbh','fallingstar','',''],
+  [318,'heolstor','noklateo','tree','deathrite','',''],
+  [319,'heolstor','noklateo','grafted','nameless','',''],
+  [1000,'gladius','default','demi','fell','',''],
+  [1001,'gladius','default','demi','fell','',''],
+  [1002,'gladius','default','bbh','treesent','',''],
+  [1003,'gladius','default','demi','treesent','',''],
+  [1004,'gladius','default','bbh','fell','',''],
+  [1005,'gladius','hollow','bbh','fell','',''],
+  [1006,'gladius','hollow','demi','fell','',''],
+  [1007,'gladius','hollow','bbh','fell','',''],
+  [1008,'gladius','hollow','bbh','treesent','grafted',''],
+  [1009,'gladius','hollow','demi','treesent','',''],
+  [1010,'adel','default','gargoyle','ancient','',''],
+  [1011,'adel','default','cavalry','crucible','',''],
+  [1012,'adel','default','cavalry','crucible','',''],
+  [1013,'adel','default','gargoyle','crucible','',''],
+  [1014,'adel','default','gargoyle','ancient','',''],
+  [1015,'adel','hollow','cavalry','ancient','',''],
+  [1016,'adel','hollow','wormface','crucible','battlefield',''],
+  [1017,'adel','hollow','cavalry','outland','',''],
+  [1018,'adel','hollow','gargoyle','outland','',''],
+  [1019,'adel','hollow','gargoyle','ancient','',''],
+  [1020,'gnoster','default','tree','draconic','',''],
+  [1021,'gnoster','default','tree','wyrm','',''],
+  [1022,'gnoster','default','tree','wyrm','',''],
+  [1023,'gnoster','default','battlefield','draconic','',''],
+  [1024,'gnoster','default','battlefield','draconic','',''],
+  [1025,'gnoster','hollow','smelter','draconic','',''],
+  [1026,'gnoster','hollow','tibia','wyrm','',''],
+  [1027,'gnoster','hollow','tree','nox','',''],
+  [1028,'gnoster','hollow','battlefield','nox','',''],
+  [1029,'gnoster','hollow','centipede','wyrm','',''],
+  [1030,'maris','default','gargoyle','godskin','',''],
+  [1031,'maris','default','grafted','fallingstar','',''],
+  [1032,'maris','default','grafted','godskin','',''],
+  [1033,'maris','default','gargoyle','godskin','',''],
+  [1034,'maris','default','grafted','fallingstar','',''],
+  [1035,'maris','hollow','wormface','godskin','','draconic'],
+  [1036,'maris','hollow','gargoyle','fallingstar','',''],
+  [1037,'maris','hollow','gaping','treesent','',''],
+  [1038,'maris','hollow','grafted','fallingstar','',''],
+  [1039,'maris','hollow','smelter','godskin','',''],
+  [1040,'libra','default','revenant','deathrite','',''],
+  [1041,'libra','default','revenant','crucible','',''],
+  [1042,'libra','default','revenant','crucible','',''],
+  [1043,'libra','default','battlefield','crucible','',''],
+  [1044,'libra','default','battlefield','deathrite','',''],
+  [1045,'libra','hollow','centipede','deathrite','',''],
+  [1046,'libra','hollow','battlefield','crucible','',''],
+  [1047,'libra','hollow','revenant','godskin','',''],
+  [1048,'libra','hollow','tibia','deathrite','',''],
+  [1049,'libra','hollow','freja','crucible','',''],
+  [1050,'fulghor','default','revenant','outland','',''],
+  [1051,'fulghor','default','cavalry','outland','',''],
+  [1052,'fulghor','default','revenant','nameless','',''],
+  [1053,'fulghor','default','cavalry','outland','',''],
+  [1054,'fulghor','default','revenant','nameless','',''],
+  [1055,'fulghor','hollow','cavalry','nox','',''],
+  [1056,'fulghor','hollow','wormface','nameless','',''],
+  [1057,'fulghor','hollow','gaping','nameless','',''],
+  [1058,'fulghor','hollow','revenant','outland','',''],
+  [1059,'fulghor','hollow','centipede','nox','','fell'],
+  [1060,'caligo','default','grafted','draconic','',''],
+  [1061,'caligo','default','grafted','draconic','',''],
+  [1062,'caligo','default','tree','dancer','',''],
+  [1063,'caligo','default','tree','dancer','',''],
+  [1064,'caligo','default','grafted','draconic','',''],
+  [1065,'caligo','hollow','tree','dancer','','nameless'],
+  [1066,'caligo','hollow','tibia','godskin','',''],
+  [1067,'caligo','hollow','grafted','draconic','',''],
+  [1068,'caligo','hollow','smelter','draconic','',''],
+  [1069,'caligo','hollow','freja','dancer','',''],
+  [1070,'heolstor','default','battlefield','treesent','',''],
+  [1071,'heolstor','default','cavalry','crucible','',''],
+  [1072,'heolstor','default','cavalry','treesent','',''],
+  [1073,'heolstor','default','gargoyle','draconic','',''],
+  [1074,'heolstor','default','gargoyle','crucible','',''],
+  [1075,'heolstor','hollow','wormface','draconic','',''],
+  [1076,'heolstor','hollow','battlefield','crucible','',''],
+  [1077,'heolstor','hollow','cavalry','godskin','',''],
+  [1078,'heolstor','hollow','tibia','nox','','ancient'],
+  [1079,'heolstor','hollow','gaping','outland','',''],
+  [1080,'balancers','default','warrior','mohg','',''],
+  [1081,'balancers','default','warrior','mohg','',''],
+  [1082,'balancers','default','demons','demonprince','',''],
+  [1083,'balancers','default','demons','demonprince','',''],
+  [1084,'balancers','default','demons','demonprince','',''],
+  [1085,'balancers','default','warrior','mohg','',''],
+  [1086,'balancers','default','warrior','mohg','',''],
+  [1087,'balancers','default','warrior','mohg','','fallingstar'],
+  [1088,'balancers','default','demons','demonprince','',''],
+  [1089,'balancers','default','warrior','mohg','',''],
+  [1090,'balancers','default','warrior','mohg','',''],
+  [1091,'balancers','default','demons','demonprince','',''],
+  [1092,'balancers','default','warrior','mohg','',''],
+  [1093,'balancers','default','demons','demonprince','',''],
+  [1094,'balancers','default','demons','demonprince','',''],
+  [1095,'balancers','default','demons','demonprince','',''],
+  [1096,'balancers','default','warrior','mohg','',''],
+  [1097,'balancers','default','demons','demonprince','',''],
+  [1098,'balancers','default','warrior','mohg','',''],
+  [1099,'balancers','default','demons','demonprince','',''],
+  [1100,'balancers','mountaintop','demons','demonprince','',''],
+  [1101,'balancers','mountaintop','warrior','mohg','',''],
+  [1102,'balancers','mountaintop','warrior','mohg','grafted',''],
+  [1103,'balancers','mountaintop','warrior','mohg','',''],
+  [1104,'balancers','mountaintop','demons','demonprince','',''],
+  [1105,'balancers','crater','warrior','mohg','',''],
+  [1106,'balancers','crater','demons','demonprince','',''],
+  [1107,'balancers','crater','demons','demonprince','',''],
+  [1108,'balancers','crater','warrior','mohg','',''],
+  [1109,'balancers','crater','demons','demonprince','',''],
+  [1110,'balancers','rotted','demons','demonprince','',''],
+  [1111,'balancers','rotted','warrior','mohg','',''],
+  [1112,'balancers','rotted','demons','demonprince','',''],
+  [1113,'balancers','rotted','warrior','mohg','',''],
+  [1114,'balancers','rotted','warrior','mohg','',''],
+  [1115,'balancers','hollow','warrior','mohg','',''],
+  [1116,'balancers','hollow','demons','demonprince','',''],
+  [1117,'balancers','hollow','warrior','mohg','',''],
+  [1118,'balancers','hollow','warrior','mohg','','crucible'],
+  [1119,'balancers','hollow','warrior','mohg','',''],
+  [1120,'balancers','hollow','warrior','mohg','demi',''],
+  [1121,'balancers','hollow','demons','demonprince','',''],
+  [1122,'balancers','hollow','demons','demonprince','',''],
+  [1123,'balancers','hollow','demons','demonprince','',''],
+  [1124,'balancers','hollow','warrior','mohg','',''],
+  [1125,'balancers','hollow','warrior','mohg','',''],
+  [1126,'balancers','hollow','demons','demonprince','',''],
+  [1127,'balancers','hollow','demons','demonprince','',''],
+  [1128,'balancers','hollow','demons','demonprince','',''],
+  [1129,'balancers','hollow','demons','demonprince','',''],
+  [1130,'balancers','hollow','demons','demonprince','',''],
+  [1131,'balancers','hollow','warrior','mohg','',''],
+  [1132,'balancers','hollow','demons','demonprince','',''],
+  [1133,'balancers','hollow','warrior','mohg','',''],
+  [1134,'balancers','hollow','warrior','mohg','',''],
+  [1135,'balancers','noklateo','demons','demonprince','',''],
+  [1136,'balancers','noklateo','demons','demonprince','',''],
+  [1137,'balancers','noklateo','warrior','mohg','',''],
+  [1138,'balancers','noklateo','warrior','mohg','',''],
+  [1139,'balancers','noklateo','demons','demonprince','',''],
+  [1140,'dreglord','default','bear','lion','',''],
+  [1141,'dreglord','default','bear','lion','',''],
+  [1142,'dreglord','default','bear','lion','',''],
+  [1143,'dreglord','default','bear','lion','',''],
+  [1144,'dreglord','default','deathknight','artorias','',''],
+  [1145,'dreglord','default','deathknight','artorias','',''],
+  [1146,'dreglord','default','deathknight','artorias','',''],
+  [1147,'dreglord','default','deathknight','lion','',''],
+  [1148,'dreglord','default','bear','lion','',''],
+  [1149,'dreglord','default','deathknight','lion','',''],
+  [1150,'dreglord','default','bear','artorias','',''],
+  [1151,'dreglord','default','bear','lion','',''],
+  [1152,'dreglord','default','deathknight','artorias','',''],
+  [1153,'dreglord','default','deathknight','artorias','',''],
+  [1154,'dreglord','default','deathknight','artorias','',''],
+  [1155,'dreglord','default','bear','lion','',''],
+  [1156,'dreglord','default','deathknight','artorias','',''],
+  [1157,'dreglord','default','deathknight','artorias','',''],
+  [1158,'dreglord','default','bear','artorias','',''],
+  [1159,'dreglord','default','bear','lion','',''],
+  [1160,'dreglord','mountaintop','bear','lion','',''],
+  [1161,'dreglord','mountaintop','bear','artorias','',''],
+  [1162,'dreglord','mountaintop','deathknight','lion','',''],
+  [1163,'dreglord','mountaintop','deathknight','artorias','',''],
+  [1164,'dreglord','mountaintop','deathknight','artorias','',''],
+  [1165,'dreglord','crater','bear','lion','',''],
+  [1166,'dreglord','crater','deathknight','lion','',''],
+  [1167,'dreglord','crater','deathknight','artorias','',''],
+  [1168,'dreglord','crater','bear','lion','',''],
+  [1169,'dreglord','crater','bear','artorias','',''],
+  [1170,'dreglord','rotted','deathknight','artorias','',''],
+  [1171,'dreglord','rotted','deathknight','artorias','',''],
+  [1172,'dreglord','rotted','deathknight','artorias','',''],
+  [1173,'dreglord','rotted','bear','lion','',''],
+  [1174,'dreglord','rotted','bear','lion','',''],
+  [1175,'dreglord','hollow','deathknight','lion','',''],
+  [1176,'dreglord','hollow','bear','lion','',''],
+  [1177,'dreglord','hollow','bear','lion','',''],
+  [1178,'dreglord','hollow','deathknight','artorias','',''],
+  [1179,'dreglord','hollow','deathknight','artorias','',''],
+  [1180,'dreglord','hollow','deathknight','artorias','',''],
+  [1181,'dreglord','hollow','deathknight','lion','',''],
+  [1182,'dreglord','hollow','bear','lion','bbh',''],
+  [1183,'dreglord','hollow','deathknight','lion','',''],
+  [1184,'dreglord','hollow','bear','artorias','',''],
+  [1185,'dreglord','hollow','deathknight','artorias','grafted',''],
+  [1186,'dreglord','hollow','deathknight','artorias','',''],
+  [1187,'dreglord','hollow','bear','lion','',''],
+  [1188,'dreglord','hollow','bear','artorias','',''],
+  [1189,'dreglord','hollow','bear','lion','',''],
+  [1190,'dreglord','hollow','deathknight','lion','','nox'],
+  [1191,'dreglord','hollow','bear','artorias','',''],
+  [1192,'dreglord','hollow','bear','lion','',''],
+  [1193,'dreglord','hollow','deathknight','artorias','',''],
+  [1194,'dreglord','hollow','bear','artorias','',''],
+  [1195,'dreglord','noklateo','bear','artorias','',''],
+  [1196,'dreglord','noklateo','bear','artorias','',''],
+  [1197,'dreglord','noklateo','deathknight','lion','',''],
+  [1198,'dreglord','noklateo','bear','lion','',''],
+  [1199,'dreglord','noklateo','deathknight','lion','',''],
+];
+// </seeds>
 
-const N2 = {
-  ancient:     { adel:1, heolstor:1 },
-  crucible:    { adel:1, libra:1, heolstor:1 },
-  dancer:      { caligo:1, heolstor:1 },
-  deathrite:   { libra:1, heolstor:1 },
-  draconic:    { gnoster:1, caligo:1, heolstor:1 },
-  fallingstar: { maris:1, heolstor:1 },
-  fell:        { gladius:1, fulghor:1, heolstor:1 },
-  godskin:     { maris:1, libra:1, caligo:1, heolstor:1 },
-  wyrm:        { gnoster:1, heolstor:1 },
-  nameless:    { fulghor:1, heolstor:1 },
-  nox:         { gnoster:1, fulghor:1, heolstor:1 },
-  outland:     { adel:1, fulghor:1, heolstor:1 },
-  treesent:    { gladius:1, gnoster:1, maris:1, heolstor:1 },
-  artorias:    { dreglord:1 },
-  lion:        { dreglord:1 },
-  mohg:        { balancers:1 },
-  demonprince: { balancers:1 }};
+const PATTERNS = SEEDS.map(([id, nightlord, map, n1, n2, n1Extra, n2Extra]) => ({
+  id, nightlord, map,
+  night1: n1Extra ? [n1, n1Extra] : [n1],
+  night2: n2Extra ? [n2, n2Extra] : [n2],
+}));
+
+const PATTERN_TOTALS = {};
+for (const p of PATTERNS) PATTERN_TOTALS[p.nightlord] = (PATTERN_TOTALS[p.nightlord] || 0) + 1;
+
+function patternMatches(p, n1, n2, map) {
+  return (!map || p.map === map)
+    && (!n1 || p.night1.includes(n1))
+    && (!n2 || p.night2.includes(n2));
+}
+
+// Number of each Nightlord's patterns consistent with the observations.
+function matchCounts(n1, n2, map) {
+  const counts = {};
+  for (const p of PATTERNS) {
+    if (patternMatches(p, n1, n2, map)) counts[p.nightlord] = (counts[p.nightlord] || 0) + 1;
+  }
+  return counts;
+}
+
+// Bosses that can appear on `night` ('night1' | 'night2') given the other
+// night's boss and the map; null means "don't filter".
+function compatibleBosses(night, n1, n2, map) {
+  if (!n1 && !n2 && !map) return null;
+  const valid = new Set();
+  for (const p of PATTERNS) {
+    if (patternMatches(p, n1, n2, map)) for (const boss of p[night]) valid.add(boss);
+  }
+  return valid;
+}
 
 const INITIALS = {
   gladius: 'G', adel: 'A', gnoster: 'Gn', maris: 'M', libra: 'L',
@@ -711,15 +1245,11 @@ const INITIALS = {
   es_balancers: 'B'
 };
 
-function getWeight(map, expeditionKey) {
-  if (!map) return 1;
-  return map[expeditionKey] ?? 0;
-}
-
 // --- Dynamic dropdown filtering -------------------------------------------
 const n1Sel = document.getElementById('n1');
 const n2Sel = document.getElementById('n2');
 const depthSel = document.getElementById('depth');
+const mapSel = document.getElementById('map');
 
 // Snapshot the original option lists so we can rebuild them dynamically.
 const N1_OPTIONS = Array.from(n1Sel.options)
@@ -728,28 +1258,6 @@ const N1_OPTIONS = Array.from(n1Sel.options)
 const N2_OPTIONS = Array.from(n2Sel.options)
   .filter(o => o.value)
   .map(o => ({ value: o.value, label: o.textContent }));
-
-function compatibleN2For(n1Key) {
-  const n1map = N1[n1Key];
-  if (!n1map) return null;
-  const n1Set = new Set(Object.keys(n1map));
-  const valid = new Set();
-  for (const [n2Key, n2map] of Object.entries(N2)) {
-    if (Object.keys(n2map).some(nl => n1Set.has(nl))) valid.add(n2Key);
-  }
-  return valid;
-}
-
-function compatibleN1For(n2Key) {
-  const n2map = N2[n2Key];
-  if (!n2map) return null;
-  const n2Set = new Set(Object.keys(n2map));
-  const valid = new Set();
-  for (const [n1Key, n1map] of Object.entries(N1)) {
-    if (Object.keys(n1map).some(nl => n2Set.has(nl))) valid.add(n1Key);
-  }
-  return valid;
-}
 
 function rebuildSelect(sel, options, validSet, placeholder) {
   const previous = sel.value;
@@ -773,34 +1281,44 @@ function rebuildSelect(sel, options, validSet, placeholder) {
   return '';
 }
 
+function rebuildNight1() {
+  const valid = compatibleBosses('night1', '', n2Sel.value, mapSel.value);
+  rebuildSelect(n1Sel, N1_OPTIONS, valid, 'Choose a boss...');
+}
+
+function rebuildNight2() {
+  const valid = compatibleBosses('night2', n1Sel.value, '', mapSel.value);
+  rebuildSelect(n2Sel, N2_OPTIONS, valid, 'Not seen yet...');
+}
+
 function onN1Change() {
-  const n1Val = n1Sel.value;
-  const validN2 = n1Val ? compatibleN2For(n1Val) : null;
-  rebuildSelect(n2Sel, N2_OPTIONS, validN2, 'Not seen yet...');
+  rebuildNight2();
   calc();
 }
 
 function onN2Change() {
-  const n2Val = n2Sel.value;
-  const validN1 = n2Val ? compatibleN1For(n2Val) : null;
-  rebuildSelect(n1Sel, N1_OPTIONS, validN1, 'Choose a boss...');
+  rebuildNight1();
   // If the previously selected N1 was just dropped, also re-narrow N2 to match.
-  const newN1 = n1Sel.value;
-  if (newN1) {
-    const validN2 = compatibleN2For(newN1);
-    rebuildSelect(n2Sel, N2_OPTIONS, validN2, 'Not seen yet...');
-  }
+  rebuildNight2();
+  calc();
+}
+
+function onMapChange() {
+  rebuildNight1();
+  rebuildNight2();
   calc();
 }
 
 n1Sel.addEventListener('change', onN1Change);
 n2Sel.addEventListener('change', onN2Change);
+mapSel.addEventListener('change', onMapChange);
 depthSel.addEventListener('change', calc);
 
 // --- Probability calculation ----------------------------------------------
 function calc() {
   const n1 = n1Sel.value;
   const n2 = n2Sel.value;
+  const map = mapSel.value;
   const depth = depthSel.value;
   const out = document.getElementById('output');
 
@@ -815,19 +1333,18 @@ function calc() {
     return;
   }
 
-  const n1map = N1[n1];
-  const n2map = n2 ? N2[n2] : null;
+  const counts = matchCounts(n1, n2, map);
   const base = BASE[depth];
 
+  // P(Nightlord | seen) ∝ P(Nightlord at this depth) × share of its patterns that match.
+  // Everdark variants roll the same patterns as the regular Nightlord.
   let total = 0;
   const scores = {};
 
   for (const key of Object.keys(EXPEDITIONS)) {
     const expKey = key.replace(/^es_/, '');
-    const w1 = getWeight(n1map, expKey);
-    const w2 = getWeight(n2map, expKey);
-    const prior = base[key];
-    const score = prior * w1 * w2;
+    const likelihood = (counts[expKey] || 0) / (PATTERN_TOTALS[expKey] || 1);
+    const score = (base[key] || 0) * likelihood;
     scores[key] = score;
     total += score;
   }
@@ -862,7 +1379,7 @@ function calc() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
         </svg>
-        <p>No valid combination.<br>Those Night 1 / Night 2 bosses do not share a Nightlord.</p>
+        <p>No valid combination.<br>No Nightlord has a map pattern with ${map ? 'that map and ' : ''}those bosses.</p>
       </div>`;
     return;
   }
@@ -928,7 +1445,7 @@ function calc() {
         <div class="boss-card-head">
           <div class="boss-card-titles">
             <div class="boss-card-name">${boss ? boss.name : e.key}</div>
-            <div class="boss-card-meta">${boss ? boss.expedition : ''}</div>
+            <div class="boss-card-meta">${boss ? boss.expedition + ' · ' : ''}${counts[e.key]} of ${PATTERN_TOTALS[e.key]} patterns</div>
           </div>
           <div class="boss-card-pct">${e.pct.toFixed(1)}%</div>
         </div>
