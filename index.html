@@ -618,7 +618,6 @@
         </select>
       </div>
     </div>
-    <p class="hint">Depth weights each Nightlord by its datamined odds; pick "Unknown" for an unweighted view. Map is the Shifting Earth or region you dropped into. Setting it narrows the matching map patterns.</p>
   </div>
 
   <div class="card" id="output">
@@ -633,8 +632,6 @@
   <div class="divider"></div>
 
   <p class="footer-note">
-    Predictions count the datamined map patterns (<a href="https://thefifthmatt.github.io/nightreign/" target="_blank" rel="noopener">thefifthmatt</a>): every pattern fixes the map, the Night 1 boss and the Night 2 boss, so only Nightlords with a matching pattern are shown. Nightlord odds per depth are datamined. DLC bosses require all party members to own The Forsaken Hollows.<br>
-    Heolstor borrows bosses from every pool, but each of his 50 patterns is one fixed Night 1 + Night 2 pair, so most combinations rule him out.<br><br>
     <strong>Disclaimer:</strong> This is a fan-made project and is not affiliated with, endorsed by, or connected to FromSoftware or Bandai Namco. Elden Ring and Nightreign are trademarks of their respective owners.
   </p>
 </div>
@@ -1379,7 +1376,7 @@ function calc() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
         </svg>
-        <p>No valid combination.<br>No Nightlord has a map pattern with ${map ? 'that map and ' : ''}those bosses.</p>
+        <p>No valid combination.<br>No Nightlord matches those bosses${map ? ' on that map' : ''}.</p>
       </div>`;
     return;
   }
@@ -1445,7 +1442,7 @@ function calc() {
         <div class="boss-card-head">
           <div class="boss-card-titles">
             <div class="boss-card-name">${boss ? boss.name : e.key}</div>
-            <div class="boss-card-meta">${boss ? boss.expedition + ' · ' : ''}${counts[e.key]} of ${PATTERN_TOTALS[e.key]} patterns</div>
+            <div class="boss-card-meta">${boss ? boss.expedition : ''}</div>
           </div>
           <div class="boss-card-pct">${e.pct.toFixed(1)}%</div>
         </div>
